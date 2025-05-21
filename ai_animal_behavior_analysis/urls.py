@@ -21,4 +21,5 @@ from simulation import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.simulate, name='simulate'),
+    path('predict/', views.cow_prediction, name='cow_prediction'),
 ]

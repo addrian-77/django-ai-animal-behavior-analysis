@@ -46,27 +46,49 @@ function draw() {
 
     for (let cow of cows) {
         cow.update();
+        sendCowDataToAI(cow);
         cow.draw();
     }
 }
-
-function logAlertToTable(cowId, temp, hr, time) {
-    const table = document.getElementById("alert-log").querySelector("tbody");
-    const row = document.createElement("tr");
-    row.classList.add("alert-row");
-
-    const cause = (temp < 35 || temp > 39) ? `Abnormal Temp (${temp.toFixed(1)}°C)` :
-                 (hr < 55) ? `Low HR (${hr} bpm)` : "Unknown";
-
-    row.innerHTML = `
-        <td>${table.rows.length + 1}</td>
-        <td>${cowId}</td>
-        <td>${cause}</td>
-        <td>${time}</td>
-    `;
-
-    table.prepend(row);
+function sendCowDataToAI(cow) {
+    fetch("/predict/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            temperature: cow.temperature,
+            heartrate: cow.heartrate,
+            hunger: cow.hunger,
+            tiredness: cow.tiredness
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("AI Prediction:", data.prediction);
+        cow.aiAssessment = data.prediction;
+    })
+    .catch(err => console.error("AI error:", err));
 }
+
+
+// function logAlertToTable(cowId, temp, hr, time) {
+//     const table = document.getElementById("alert-log").querySelector("tbody");
+//     const row = document.createElement("tr");
+//     row.classList.add("alert-row");
+
+//     const cause = (temp < 35 || temp > 39) ? `Abnormal Temp (${temp.toFixed(1)}°C)` :
+//                  (hr < 55) ? `Low HR (${hr} bpm)` : "Unknown";
+
+//     row.innerHTML = `
+//         <td>${table.rows.length + 1}</td>
+//         <td>${cowId}</td>
+//         <td>${cause}</td>
+//         <td>${time}</td>
+//     `;
+
+//     table.prepend(row);
+// }
 
 function drawSky() {
     let daylight = sin(TWO_PI * timeOfDay);
@@ -115,8 +137,8 @@ let Cow = function(x, y) {
 
     this.temperature = random(37.5, 38.5);
     this.heartrate = int(random(55, 65));
-    this.isAlert = false;
-    this.isSick = random(1) < 0.3;
+    // this.isAlert = false;
+    this.aiAssessment = '';
 
     this.update = function() {
         this.timer--;
@@ -128,15 +150,20 @@ let Cow = function(x, y) {
         this.temperature = constrain(this.temperature + tempDrift, 33.0, 41.5);
         this.heartrate = constrain(this.heartrate + hrDrift, 40, 100);
 
-        let prevAlert = this.isAlert;
-        this.isAlert = (this.temperature < 35.0 || this.temperature > 39.0 || this.heartrate < 55);
+        // let prevAlert = this.isAlert;
+        // this.isAlert = (this.temperature < 35.0 || this.temperature > 39.0 || this.heartrate < 55);
+        // if (this.isAlert && !this.aiAssessmentRequested) {
+        //     sendCowDataToAI(this);
+        //     this.aiAssessmentRequested = true;
+        // }
 
-        if (this.isAlert && !prevAlert) {
-            const cowId = this.x.toFixed(0) + "-" + this.y.toFixed(0);
-            const time = new Date().toLocaleTimeString();
-            alertLog.push({ id: cowId, temp: this.temperature.toFixed(1), hr: this.heartrate, time });
-            logAlertToTable(cowId, this.temperature, this.heartrate, time);
-        }
+
+        // if (this.isAlert && !prevAlert) {
+        //     const cowId = this.x.toFixed(0) + "-" + this.y.toFixed(0);
+        //     const time = new Date().toLocaleTimeString();
+        //     alertLog.push({ id: cowId, temp: this.temperature.toFixed(1), hr: this.heartrate, time });
+        //     logAlertToTable(cowId, this.temperature, this.heartrate, time);
+        // }
 
         if (this.tiredness > 80 && this.state !== 'sleeping') {
             this.state = 'sleeping';
@@ -227,6 +254,12 @@ let Cow = function(x, y) {
 
     this.draw = function() {
         push();
+        if (this.aiAssessment) {
+            fill(255, 255, 0);
+            textSize(10);
+            text(`AI: ${this.aiAssessment}`, this.x + 20, this.y - 55);
+        }
+
         translate(this.x + 45, this.y + 45);
         if (this.speedX > 0.2) scale(-1, 1);
         imageMode(CENTER);
