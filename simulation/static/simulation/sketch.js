@@ -4,24 +4,39 @@ let alertLog = [];
 
 let cowImg;
 let sleepingCowImg;
+let baby_cowImg;
+let sleeping_baby_CowImg;
+let old_cowImg;
+let sleeping_old_CowImg;
 let grasspatchImg;
+let heartImg;
 
-let height = 600;
-let width = 800;
-let canvasWidth = 800;
-let canvasHeight = 600;
+let height = 800;
+let width = 1000;
+let canvasWidth = 1000;
+let canvasHeight = 800;
 let timeOfDay = 0.25;
 let daySpeed = 0.001;
 
 let hoveredCow = null;
-let lastHoveredId = null;
+let activeCow = null;
+let activeDiagnosis = null;
+let lastCowId = null;
+let diagnosisBox = { x: 0, y: 0, w: 160, h: 40 };
+
 let hoverDiagnosis = null;
+let hoverPredictionTime = null;
 
 let cowDiagnosis = null;
 
 function preload() {
+    heartImg = loadImage('/static/simulation/hearts.png');
+    baby_cowImg = loadImage('/static/simulation/baby_cow.png');
     cowImg = loadImage('/static/simulation/cow.png');
+    old_cowImg = loadImage('/static/simulation/old_cow.png');
+    sleeping_baby_CowImg = loadImage('/static/simulation/baby_cow_sleeping.png');
     sleepingCowImg = loadImage('/static/simulation/cow_sleeping.png');
+    sleeping_old_CowImg = loadImage('/static/simulation/old_cow_sleeping.png');
     grasspatchImg = loadImage('/static/simulation/grasspatch.png');
 }
 
@@ -51,82 +66,59 @@ function draw() {
 
     for (let cow of cows) {
         cow.update();
-        sendCowDataToAI(cow);
+        // Removed AI call here — now done on click only
         cow.draw();
     }
 
+    // Draw diagnosis box at clicked cow's position (if any)
     if (hoveredCow && hoverDiagnosis) {
         fill(255);
-        rect(mouseX + 10, mouseY + 10, 150, 40);
+        rect(hoveredCow.x + 60, hoveredCow.y - 70, 150, 60);
         fill(0);
         textSize(12);
-        text(`Diagnosis: ${hoverDiagnosis}`, mouseX + 15, mouseY + 30);
+        text(`Diagnosis: ${hoverDiagnosis}`, hoveredCow.x + 65, hoveredCow.y - 30);
+
+        if (hoverPredictionTime !== null && hoverDiagnosis != "Loading...") {
+            textSize(10);
+            fill(100);
+            text(`Prediction time: ${(hoverPredictionTime * 1000).toFixed(1)} ms`, hoveredCow.x + 65, hoveredCow.y - 45);
+        }
     }
-
+    for (let cow of cows) {
+        if (cow.breeding && cow.breedingTimer > 0) {
+            image(heartImg, cow.x + 35, cow.y - 60, 60, 60);
+        }
+    }
 }
-<<<<<<< HEAD
 
-function mouseMoved() {
-    hoveredCow = null;
 
+
+
+function mouseClicked() {
+    let clickedCowFound = false;
     for (let cow of cows) {
         let d = dist(mouseX, mouseY, cow.x + 45, cow.y + 45);
         if (d < 45) {
-            hoveredCow = cow;
-            const cowId = cow.x.toFixed(0) + "-" + cow.y.toFixed(0);
+            hoveredCow = cow; // set hoveredCow immediately
+            hoverDiagnosis = "Loading...";
+            sendCowDataToAI(cow).then(prediction => {
+                hoverDiagnosis = prediction;
+            });
 
-            if (cowId !== lastHoveredId) {
-                lastHoveredId = cowId;
-                getDiagnosis(cow.temperature, cow.heartrate, function(diagnosis) {
-                    hoverDiagnosis = diagnosis;
-                });
-            }
-            return;
+            clickedCowFound = true;
+            break;
         }
     }
-
-    hoverDiagnosis = null;
-    lastHoveredId = null;
+    if (!clickedCowFound) {
+        // Clear diagnosis if clicked outside cows
+        hoveredCow = null;
+        hoverDiagnosis = null;
+    }
 }
 
 
-function getDiagnosis(temp, hr, callback) {
-    fetch('/api/diagnose/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ temperature: temp, heartrate: hr }) // ✅ key names match Python now
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log("✅ Diagnosis response:", data);
-        callback(data.diagnosis);
-    })
-    .catch(error => {
-        console.error("❌ Error in getDiagnosis:", error);
-    });
-}
-
-
-function logAlertToTable(cowId, temp, hr, time) {
-    getDiagnosis(temp, hr, function(diagnosis) {
-        const table = document.getElementById("alert-log").querySelector("tbody");
-        const row = document.createElement("tr");
-        row.classList.add("alert-row");
-
-        row.innerHTML = `
-            <td>${table.rows.length + 1}</td>
-            <td>${cowId}</td>
-            <td>${diagnosis}</td>
-            <td>${time}</td>
-        `;
-
-        table.prepend(row);
-    });
-=======
 function sendCowDataToAI(cow) {
-    fetch("/predict/", {
+    return fetch("/predict/", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -140,31 +132,21 @@ function sendCowDataToAI(cow) {
     })
     .then(res => res.json())
     .then(data => {
-        console.log("AI Prediction:", data.prediction);
-        cow.aiAssessment = data.prediction;
+        console.log("AI Prediction:", data.prediction, "Time:", data.prediction_time);
+        hoverPredictionTime = data.prediction_time;
+        return data.prediction;
     })
-    .catch(err => console.error("AI error:", err));
->>>>>>> dcc9e7ffd6b5a04e6494fb624e2320ce06940096
+    .catch(err => {
+        console.error("AI error:", err);
+        hoverPredictionTime = null;
+        return "Error";
+    });
 }
 
 
-// function logAlertToTable(cowId, temp, hr, time) {
-//     const table = document.getElementById("alert-log").querySelector("tbody");
-//     const row = document.createElement("tr");
-//     row.classList.add("alert-row");
-
-//     const cause = (temp < 35 || temp > 39) ? `Abnormal Temp (${temp.toFixed(1)}°C)` :
-//                  (hr < 55) ? `Low HR (${hr} bpm)` : "Unknown";
-
-//     row.innerHTML = `
-//         <td>${table.rows.length + 1}</td>
-//         <td>${cowId}</td>
-//         <td>${cause}</td>
-//         <td>${time}</td>
-//     `;
-
-//     table.prepend(row);
-// }
+function spawnCow(x, y) {
+    cows.push(new Cow(x, y));
+}
 
 function drawSky() {
     let daylight = sin(TWO_PI * timeOfDay);
@@ -215,15 +197,61 @@ let Cow = function(x, y) {
     // this.isAlert = false;
     this.aiAssessment = '';
 
+    this.age = 0; // in days or ticks
+    this.lifespan = int(random(3000, 5000)); // random lifespan (adjust as needed)
+    this.reproductionCooldown = 0; // ticks until cow can reproduce again
+    this.gestation = false;
+    this.gestationTimer = 0;
+    this.breeding = false;
+    this.breedingTimer = 0;
+
+
+
     this.update = function() {
         this.timer--;
         this.hunger = constrain(this.hunger - 0.05, 0, this.maxHunger);
         this.tiredness = constrain(this.tiredness + random(0.1, 0.3), 0, 100);
 
         let tempDrift = this.isSick ? random(-0.05, 0.15) : random(-0.03, 0.03);
-        let hrDrift = this.isSick ? int(random(-1, 2)) + 1 : int(random(-1, 2));
+        let hrDrift = int(random(-1, 1));
         this.temperature = constrain(this.temperature + tempDrift, 33.0, 41.5);
         this.heartrate = constrain(this.heartrate + hrDrift, 40, 100);
+        // Age and death
+        this.age++;
+        if (this.age > this.lifespan) {
+            cows = cows.filter(c => c !== this); // Remove this cow from the herd
+            return;
+        }
+
+        // Reproduction cooldown
+        if (this.reproductionCooldown > 0) {
+            this.reproductionCooldown--;
+        }
+
+        // Handle gestation
+        if (this.gestation) {
+            this.gestationTimer--;
+            if (this.gestationTimer <= 0) {
+                this.gestation = false;
+                this.breeding = true;
+                this.breedingTimer = 60; // 60 frames (~1 second)
+                this.reproductionCooldown = 1000; // Prevent immediate repeat
+                spawnCow(this.x + random(-20, 20), this.y + random(-20, 20));
+            }
+        }
+
+        if (!this.gestation && this.reproductionCooldown === 0) {
+        for (let other of cows) {
+            if (other !== this && !other.gestation && other.reproductionCooldown === 0) {
+                let d = dist(this.x, this.y, other.x, other.y);
+                if (d < 60) { // Close enough to mate
+                    this.gestation = true;
+                    this.gestationTimer = 600; // Gestation duration
+                    break;
+                }
+            }
+        }
+    }
 
         // let prevAlert = this.isAlert;
         // this.isAlert = (this.temperature < 35.0 || this.temperature > 39.0 || this.heartrate < 55);
@@ -329,18 +357,21 @@ let Cow = function(x, y) {
 
     this.draw = function() {
         push();
-        if (this.aiAssessment) {
-            fill(255, 255, 0);
-            textSize(10);
-            text(`AI: ${this.aiAssessment}`, this.x + 20, this.y - 55);
-        }
 
         translate(this.x + 45, this.y + 45);
         if (this.speedX > 0.2) scale(-1, 1);
         imageMode(CENTER);
         if (this.isAlert) tint(255, 0, 0);
-        if (this.state == 'sleeping') image(sleepingCowImg, 0, 0, 90, 90);
-        else image(cowImg, 0, 0, 90, 90);
+        if (this.age < this.lifespan / 3) {
+            if (this.state == 'sleeping') image(sleeping_baby_CowImg, 0, 0, 90, 90);
+            else image(baby_cowImg, 0, 0, 90, 90);
+        } else if (this.age > 2 * this.lifespan / 3) {
+            if (this.state == 'sleeping') image(sleeping_old_CowImg, 0, 0, 90, 90);
+            else image(old_cowImg, 0, 0, 90, 90);
+        } else {
+            if (this.state == 'sleeping') image(sleepingCowImg, 0, 0, 90, 90);
+            else image(cowImg, 0, 0, 90, 90);
+        }
         noTint();
         pop();
 
@@ -359,17 +390,23 @@ let Cow = function(x, y) {
         textAlign(LEFT);
         text(`🌡️ ${this.temperature.toFixed(1)}°C`, this.x + 20, this.y - 22);
         text(`❤️ ${this.heartrate} bpm`, this.x + 20, this.y - 34);
-
-        if (this.isAlert) {
-            fill(255, 0, 0);
-            textSize(12);
-            text("⚠️ VITALS", this.x + 20, this.y - 45);
+        textSize(10);
+        text(`Age: ${this.age}`, this.x + 20, this.y - 46);
+        if (this.gestation) {
+            fill(255, 105, 180);
+            text("🤰", this.x + 20, this.y - 58);
         }
 
         if (this.state === 'eating') {
             fill(255);
             textSize(10);
             text("😋", this.x + 10, this.y - 10);
+        }
+        if (this.breeding && this.breedingTimer > 0) {
+            this.breedingTimer--;
+            if (this.breedingTimer <= 0) {
+                this.breeding = false;
+            }
         }
     };
 };
