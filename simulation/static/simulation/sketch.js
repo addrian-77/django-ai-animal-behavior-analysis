@@ -1,4 +1,3 @@
-
 let grassPatches = [];
 let cows = [];
 let alertLog = [];
@@ -13,6 +12,12 @@ let canvasWidth = 800;
 let canvasHeight = 600;
 let timeOfDay = 0.25;
 let daySpeed = 0.001;
+
+let hoveredCow = null;
+let lastHoveredId = null;
+let hoverDiagnosis = null;
+
+let cowDiagnosis = null;
 
 function preload() {
     cowImg = loadImage('/static/simulation/cow.png');
@@ -48,24 +53,75 @@ function draw() {
         cow.update();
         cow.draw();
     }
+
+    if (hoveredCow && hoverDiagnosis) {
+        fill(255);
+        rect(mouseX + 10, mouseY + 10, 150, 40);
+        fill(0);
+        textSize(12);
+        text(`Diagnosis: ${hoverDiagnosis}`, mouseX + 15, mouseY + 30);
+    }
+
 }
 
+function mouseMoved() {
+    hoveredCow = null;
+
+    for (let cow of cows) {
+        let d = dist(mouseX, mouseY, cow.x + 45, cow.y + 45);
+        if (d < 45) {
+            hoveredCow = cow;
+            const cowId = cow.x.toFixed(0) + "-" + cow.y.toFixed(0);
+
+            if (cowId !== lastHoveredId) {
+                lastHoveredId = cowId;
+                getDiagnosis(cow.temperature, cow.heartrate, function(diagnosis) {
+                    hoverDiagnosis = diagnosis;
+                });
+            }
+            return;
+        }
+    }
+
+    hoverDiagnosis = null;
+    lastHoveredId = null;
+}
+
+
+function getDiagnosis(temp, hr, callback) {
+    fetch('/api/diagnose/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ temperature: temp, heartrate: hr }) // ✅ key names match Python now
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("✅ Diagnosis response:", data);
+        callback(data.diagnosis);
+    })
+    .catch(error => {
+        console.error("❌ Error in getDiagnosis:", error);
+    });
+}
+
+
 function logAlertToTable(cowId, temp, hr, time) {
-    const table = document.getElementById("alert-log").querySelector("tbody");
-    const row = document.createElement("tr");
-    row.classList.add("alert-row");
+    getDiagnosis(temp, hr, function(diagnosis) {
+        const table = document.getElementById("alert-log").querySelector("tbody");
+        const row = document.createElement("tr");
+        row.classList.add("alert-row");
 
-    const cause = (temp < 35 || temp > 39) ? `Abnormal Temp (${temp.toFixed(1)}°C)` :
-                 (hr < 55) ? `Low HR (${hr} bpm)` : "Unknown";
+        row.innerHTML = `
+            <td>${table.rows.length + 1}</td>
+            <td>${cowId}</td>
+            <td>${diagnosis}</td>
+            <td>${time}</td>
+        `;
 
-    row.innerHTML = `
-        <td>${table.rows.length + 1}</td>
-        <td>${cowId}</td>
-        <td>${cause}</td>
-        <td>${time}</td>
-    `;
-
-    table.prepend(row);
+        table.prepend(row);
+    });
 }
 
 function drawSky() {
@@ -101,7 +157,6 @@ function drawSky() {
         ellipse(moonX, moonY, 30, 30);
     }
 }
-
 let Cow = function(x, y) {
     this.x = x;
     this.y = y;
