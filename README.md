@@ -1,4 +1,4 @@
-# Django AI Animal Behavior Analysis
+#  Django AI Animal Behavior Analysis
 
 A Django-based web application that leverages AI to analyze and classify cow behavior based on simulated physiological data. This tool supports proactive livestock monitoring and health diagnostics using synthetic data and machine learning.
 
