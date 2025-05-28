@@ -6,73 +6,22 @@
     <title>Cow Field Simulation</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.js"></script>
     <script src="{% static 'simulation/sketch.js' %}?v={{ timestamp }}"></script>
-    <style>
-        body {
-            background: #a3d977;
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-
-        h1 {
-            text-align: center;
-        }
-
-        #main-container {
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            gap: 40px;
-            margin-top: 20px;
-        }
-
-        #simulation-canvas {
-            border: 2px solid #444;
-        }
-
-        #alert-log-container {
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-            max-height: 600px;
-            overflow-y: auto;
-        }
-
-        #alert-log {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        #alert-log th, #alert-log td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: center;
-        }
-
-        #alert-log th {
-            background-color: #f2f2f2;
-        }
-
-        #alert-log tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        #alert-log tr.alert-row {
-            background-color: #ffe6e6;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/simulation/style.css">
 </head>
 <body>
+    <!-- AI Analysis Panel -->
+    <div id="ai-analysis-panel" style="display:none; position:absolute; top:10px; right:10px; background:white; padding:10px; border:1px solid #ccc; z-index:1000;">
+        <h4>AI Diagnosis</h4>
+        <p><strong>Input:</strong> <span id="input-data"></span></p>
+        <p><strong>Diagnosis:</strong> <span id="ai-diagnosis"></span></p>
+        <p><strong>Prediction Time:</strong> <span id="prediction-time"></span></p>
+        <button onclick="hidePanel()">Close</button>
+    </div>
     <h1>Cow Field Simulation</h1>
 
     <div id="main-container">
         <!-- 🖼️ Canvas goes here -->
         <div id="simulation-canvas"></div>
-
-        <!-- 📋 Alert Log -->
-        <div id="alert-log-container">
-            <h3>🐄 Alert Log</h3>
-        </div>
     </div>
 </body>
 </html>

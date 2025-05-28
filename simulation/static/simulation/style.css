@@ -1,0 +1,44 @@
+body {
+    background: #a3d977;
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+h1 {
+    text-align: center;
+}
+#main-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    margin-top: 20px;
+}
+#simulation-canvas {
+    border: 2px solid #444;
+}
+#alert-log-container {
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    max-height: 600px;
+    overflow-y: auto;
+}
+#alert-log {
+    width: 100%;
+    border-collapse: collapse;
+}
+#alert-log th, #alert-log td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+}
+#alert-log th {
+    background-color: #f2f2f2;
+}
+#alert-log tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+#alert-log tr.alert-row {
+    background-color: #ffe6e6;
+}

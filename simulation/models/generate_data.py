@@ -14,9 +14,9 @@ def generate_cow_data(n_samples=500):
         age = np.random.uniform(0, 20)
 
         # Labeling rules
-        if temp > 39.5 or temp < 37:
+        if temp > 39.0 or temp < 35.0:
             label = "Sick - Temp"
-        elif hr > 100 or hr < 50:
+        elif hr < 55:
             label = "Sick - HR"
         elif hunger < 30:
             label = "Hungry"
